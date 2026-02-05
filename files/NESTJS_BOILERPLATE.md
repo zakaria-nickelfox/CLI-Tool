@@ -53,7 +53,12 @@ export class UserService {
 
   async createUser(email: string, name: string) {
     // ... user creation logic
-    await this.mailService.sendWelcomeEmail(email, name);
+    await this.mailService.sendMail(
+      email,
+      'Welcome!',
+      `Welcome ${name}!`,
+      `<h1>Welcome ${name}!</h1>`
+    );
   }
 }
 ```
@@ -159,7 +164,9 @@ The notification entity includes:
 ### Usage
 
 ```typescript
+import { Injectable } from '@nestjs/common';
 import { NotificationService } from './notification.service';
+import { NotificationType } from '../enums/notification-type.enum';
 
 @Injectable()
 export class OrderService {
@@ -345,7 +352,8 @@ export class NotificationModule {}
 ### Setup
 
 ```typescript
-import { RolesGuard, PermissionsGuard, RbacService } from './rbac.guard';
+import { Module } from '@nestjs/common';
+import { RolesGuard, PermissionsGuard, RbacService } from '../rbac/rbac.guard';
 
 @Module({
   providers: [RolesGuard, PermissionsGuard, RbacService],
@@ -357,7 +365,10 @@ export class RbacModule {}
 ### Usage with Decorators
 
 ```typescript
-import { Roles, Permissions, Role, Permission } from './rbac.guard';
+import { Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Roles, Permissions, Role, Permission } from '../rbac/rbac.guard';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
+import { RolesGuard, PermissionsGuard } from '../rbac/rbac.guard';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -393,7 +404,9 @@ export class ResourceController {
 
 ```typescript
 // main.ts or app.module.ts
+import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { RolesGuard } from '../rbac/rbac.guard';
 
 @Module({
   providers: [
@@ -644,13 +657,16 @@ Register the filter globally:
 
 ```typescript
 // main.ts
-import { GlobalExceptionFilter } from './global-exception.filter';
+import { NestFactory } from '@nestjs/core';
+import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './filters/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalFilters(new GlobalExceptionFilter());
   await app.listen(3000);
 }
+bootstrap();
 ```
 
 ### Usage
@@ -745,9 +761,12 @@ npm install winston winston-daily-rotate-file
 ### Module Registration
 
 ```typescript
-import { CustomLoggerService } from './custom-logger.service';
-import { LogEntry } from './log-entry.entity';
+import { Module, Global } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CustomLoggerService } from '../logger/custom-logger.service';
+import { LogEntry } from '../entities/log-entry.entity';
 
+@Global()
 @Module({
   imports: [TypeOrmModule.forFeature([LogEntry])],
   providers: [CustomLoggerService],
@@ -768,11 +787,20 @@ ADMIN_EMAIL=admin@yourapp.com
 ### Usage
 
 ```typescript
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { CustomLoggerService } from './custom-logger.service';
+import { CreateUserDto } from './dtos/create-user-dto.dto';
+import { User } from './entities/user.entity';
 
 @Injectable()
 export class UserService {
-  constructor(private logger: CustomLoggerService) {}
+  constructor(
+    private logger: CustomLoggerService,
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+  ) {}
 
   async createUser(dto: CreateUserDto) {
     this.logger.log('Creating new user', 'UserService', { email: dto.email });
@@ -797,6 +825,10 @@ export class UserService {
 ### Viewing Logs
 
 ```typescript
+import { Controller, Get, Query } from '@nestjs/common';
+import { CustomLoggerService } from '../logger/custom-logger.service';
+import { LogLevel } from '../entities/log-entry.entity';
+
 @Controller('logs')
 export class LogController {
   constructor(private logger: CustomLoggerService) {}
@@ -817,7 +849,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import * as winston from 'winston';
 import 'winston-daily-rotate-file';
-import { LogEntry, LogLevel } from './log-entry.entity';
+import { LogEntry, LogLevel } from '../entities/log-entry.entity';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class CustomLoggerService implements LoggerService {
@@ -851,13 +883,13 @@ export class CustomLoggerService implements LoggerService {
     });
   }
 
-  log(message: string, context?: string) {
-    this.logger.info(message, { context });
+  log(message: string, context?: string, metadata?: any) {
+    this.logger.info(message, { context, ...metadata });
     this.saveToDb(LogLevel.INFO, message, context);
   }
 
-  error(message: string, trace?: string, context?: string) {
-    this.logger.error(message, { trace, context });
+  error(message: string, trace?: string, context?: string, metadata?: any) {
+    this.logger.error(message, { trace, context, ...metadata });
     this.saveToDb(LogLevel.ERROR, message, context, trace);
   }
 
@@ -940,8 +972,8 @@ export class LoggerModule {}
 
 ```typescript
 import { Controller, Get, Query } from '@nestjs/common';
-import { CustomLoggerService } from './custom-logger.service';
-import { LogLevel } from './log-entry.entity';
+import { CustomLoggerService } from '../logger/custom-logger.service';
+import { LogLevel } from '../entities/log-entry.entity';
 
 @Controller('logs')
 export class LogController {
@@ -1075,11 +1107,11 @@ describe('MailService', () => {
 
   it('should send email', async () => {
     await expect(
-      service.sendMail({
-        to: 'user@test.com',
-        subject: 'Test',
-        text: 'Test message',
-      })
+      service.sendMail(
+        'user@test.com',
+        'Test',
+        'Test message'
+      )
     ).resolves.not.toThrow();
   });
 });

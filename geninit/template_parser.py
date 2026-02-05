@@ -2,8 +2,9 @@
 Template parser for extracting code blocks and generating project files from boilerplate MD files.
 """
 import re
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Set
 from pathlib import Path
+from geninit.models import ImportStatement, extract_imports_from_content
 
 
 class BoilerplateParser:
@@ -127,6 +128,44 @@ class BoilerplateParser:
             def to_kebab(name):
                 return re.sub(r'(?<!^)(?=[A-Z])', '-', name).lower()
 
+            # Check for RBAC guard file FIRST (contains multiple guards and enums)
+            # This must be checked before individual enum/guard checks
+            if ('export enum Role' in code and 'export enum Permission' in code and 
+                'RolesGuard' in code and 'PermissionsGuard' in code):
+                return "rbac.guard.ts"
+            
+            # Check for LogEntry entity (contains both enum and entity)
+            if 'export enum LogLevel' in code and 'export class LogEntry' in code:
+                return "log-entry.entity.ts"
+
+            # Check for enum
+            if 'export enum' in code:
+                match = re.search(r'export\s+enum\s+(\w+)', code)
+                if match:
+                    base = to_kebab(match.group(1))
+                    return f"{base}.enum.ts"
+            
+            # Check for decorator
+            if 'createParamDecorator' in code or 'SetMetadata' in code:
+                match = re.search(r'export\s+const\s+(\w+)\s*=\s*createParamDecorator', code)
+                if match:
+                    base = to_kebab(match.group(1))
+                    return f"{base}.decorator.ts"
+            
+            # Check for DTO
+            if 'export class' in code and ('Dto' in code or 'DTO' in code):
+                match = re.search(r'export\s+class\s+(\w+)', code)
+                if match:
+                    base = to_kebab(match.group(1))
+                    return f"{base}.dto.ts"
+            
+            # Check for interface
+            if 'export interface' in code:
+                match = re.search(r'export\s+interface\s+(\w+)', code)
+                if match:
+                    base = to_kebab(match.group(1))
+                    return f"{base}.interface.ts"
+
             if '@Module' in code:
                  match = re.search(r'class\s+(\w+)Module', code)
                  base = to_kebab(match.group(1)) if match else clean_name.replace('-system', '').replace('-service', '')
@@ -146,6 +185,8 @@ class BoilerplateParser:
                       return f"{base}.guard.ts"
                  if 'implements ExceptionFilter' in code or 'Filter' in code:
                       return "global-exception.filter.ts"
+                 if 'LoggerService' in code or 'winston' in code:
+                      return "custom-logger.service.ts"
                  # Default service
                  match = re.search(r'class\s+(\w+)Service', code)
                  base = to_kebab(match.group(1)) if match else clean_name.replace('-system', '').replace('-service', '')
@@ -198,6 +239,11 @@ class BoilerplateParser:
                  code = f"import {{ {', '.join(missing)} }} from '@nestjs/common';\n" + code
              else:
                  code = f"import {{ {', '.join(missing)} }} from '@nestjs/common';\n" + code
+        
+        # Fix main.ts - ensure bootstrap() is called
+        if 'async function bootstrap()' in code and 'bootstrap()' not in code.split('async function bootstrap()')[1]:
+            code = code.rstrip() + '\nbootstrap();\n'
+        
         return code
 
     def get_files_for_features(self, selected_features: List[str]) -> Dict[str, str]:
@@ -229,9 +275,53 @@ class BoilerplateParser:
                 # Fix imports for NestJS
                 if lang in ['typescript', 'ts']:
                     content = self._fix_nestjs_imports(content)
+                    content = self.fix_typeorm_imports(content)
                 
                 files[filename] = content
         return files
+    
+    def fix_typeorm_imports(self, code: str) -> str:
+        """Replace @nestjs/typeorm decorator imports with typeorm package."""
+        # TypeORM decorators that should come from 'typeorm' not '@nestjs/typeorm'
+        TYPEORM_DECORATORS = {
+            'Entity', 'Column', 'PrimaryGeneratedColumn', 
+            'CreateDateColumn', 'UpdateDateColumn',
+            'ManyToOne', 'OneToMany', 'ManyToMany', 'JoinColumn', 'JoinTable',
+            'PrimaryColumn', 'Index', 'Unique', 'Check', 'Exclusion',
+            'Generated', 'VersionColumn', 'ObjectIdColumn', 'BeforeInsert',
+            'AfterInsert', 'BeforeUpdate', 'AfterUpdate', 'BeforeRemove',
+            'AfterRemove', 'AfterLoad', 'EventSubscriber', 'EntityRepository'
+        }
+        
+        # Find all imports from @nestjs/typeorm
+        import_pattern = r"import\s+{([^}]+)}\s+from\s+['\"]@nestjs/typeorm['\"]"
+        
+        def replace_import(match):
+            imported_items = [item.strip() for item in match.group(1).split(',')]
+            
+            # Separate TypeORM decorators from NestJS-specific imports
+            typeorm_items = []
+            nestjs_items = []
+            
+            for item in imported_items:
+                # Remove 'type' keyword if present
+                clean_item = item.replace('type ', '').strip()
+                if clean_item in TYPEORM_DECORATORS:
+                    typeorm_items.append(item)
+                else:
+                    nestjs_items.append(item)
+            
+            # Build replacement imports
+            result = []
+            if typeorm_items:
+                result.append(f"import {{ {', '.join(typeorm_items)} }} from 'typeorm'")
+            if nestjs_items:
+                result.append(f"import {{ {', '.join(nestjs_items)} }} from '@nestjs/typeorm'")
+            
+            return ';\n'.join(result) if result else ''
+        
+        code = re.sub(import_pattern, replace_import, code)
+        return code
     
     def get_env_template(self) -> str:
         """Extract environment variable template."""
@@ -291,3 +381,114 @@ class BoilerplateParser:
         deps['npm_dev'] = list(set(deps['npm_dev']))
         
         return deps
+    
+    def extract_imports(self, code: str) -> List[ImportStatement]:
+        """
+        Extract all import statements from TypeScript code.
+        
+        Args:
+            code: TypeScript file content
+            
+        Returns:
+            List of ImportStatement objects
+        """
+        return extract_imports_from_content(code)
+    
+    def find_referenced_files(self, selected_features: List[str]) -> Set[str]:
+        """
+        Find all files referenced by relative imports in selected features.
+        
+        Args:
+            selected_features: List of feature names to analyze
+            
+        Returns:
+            Set of unique relative file paths referenced in imports
+        """
+        referenced_files = set()
+        
+        # Get all code blocks for selected features
+        for feature in selected_features:
+            if feature not in self.features:
+                continue
+            
+            feature_data = self.features[feature]
+            code_blocks = feature_data['code_blocks']
+            
+            for block in code_blocks:
+                lang = block['language']
+                code = block['code']
+                
+                # Only analyze TypeScript/JavaScript files
+                if lang not in ['typescript', 'ts', 'tsx', 'javascript', 'js', 'jsx']:
+                    continue
+                
+                # Extract imports from this code block
+                imports = self.extract_imports(code)
+                
+                # Collect relative imports
+                for imp in imports:
+                    if imp.is_relative and imp.module_path:
+                        # Normalize the path (remove ./ and ../)
+                        path = imp.module_path
+                        # Add common extensions if not present
+                        if not any(path.endswith(ext) for ext in ['.ts', '.js', '.tsx', '.jsx']):
+                            # Try with .ts extension (most common for NestJS)
+                            referenced_files.add(f"{path}.ts")
+                        else:
+                            referenced_files.add(path)
+        
+        return referenced_files
+    
+    def extract_file_by_path(self, file_path: str) -> str:
+        """
+        Extract a specific file from the boilerplate by searching for its path.
+        
+        Args:
+            file_path: The relative path to search for (e.g., './rbac/rbac.guard')
+            
+        Returns:
+            File content if found, empty string otherwise
+        """
+        # Normalize the path - remove leading ./ and ../
+        normalized_path = file_path.replace('./', '').replace('../', '')
+        
+        # Extract just the filename
+        filename = Path(normalized_path).name
+        
+        # Search through all features for a code block that might be this file
+        for feature_name, feature_data in self.features.items():
+            code_blocks = feature_data['code_blocks']
+            
+            for block in code_blocks:
+                lang = block['language']
+                code = block['code']
+                
+                # Skip non-code blocks
+                if lang in ['bash', 'env', 'text', '']:
+                    continue
+                
+                # Check if this code block matches the file we're looking for
+                # Method 1: Check for explicit filename in comments
+                extracted_filename = self.extract_filename_from_code(code, lang)
+                if extracted_filename and extracted_filename == filename:
+                    return code
+                
+                # Method 2: Infer filename and check if it matches
+                inferred_filename = self.infer_filename(feature_name, lang, code, 0)
+                if inferred_filename == filename:
+                    return code
+                
+                # Method 3: Check if the feature name or code content suggests this file
+                # For example, if looking for 'rbac.guard.ts', check features with 'rbac' or 'guard'
+                if filename.replace('.ts', '').replace('.js', '').replace('-', '').replace('.', '') in feature_name.lower().replace(' ', '').replace('-', ''):
+                    # Additional validation: check if code contains expected patterns
+                    if 'guard' in filename.lower() and ('Guard' in code or 'CanActivate' in code):
+                        return code
+                    if 'decorator' in filename.lower() and ('createParamDecorator' in code or 'SetMetadata' in code):
+                        return code
+                    if 'enum' in filename.lower() and 'export enum' in code:
+                        return code
+                    if 'entity' in filename.lower() and '@Entity' in code:
+                        return code
+        
+        return ""

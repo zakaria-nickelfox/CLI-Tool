@@ -6,7 +6,7 @@ This plan breaks down the implementation into discrete tasks that enhance the ex
 
 ## Tasks
 
-- [ ] 1. Create data models and utilities for import analysis
+- [-] 1. Create data models and utilities for import analysis
   - Create ImportStatement dataclass in geninit/models.py
   - Create utility functions for parsing TypeScript imports
   - Add regex patterns for different import styles (named, default, namespace)
@@ -16,20 +16,20 @@ This plan breaks down the implementation into discrete tasks that enhance the ex
   - **Property 1: Import Extraction Completeness**
   - **Validates: Requirements 1.1**
 
-- [ ] 2. Enhance BoilerplateParser with import analysis
-  - [ ] 2.1 Add extract_imports() method to BoilerplateParser
+- [-] 2. Enhance BoilerplateParser with import analysis
+  - [x] 2.1 Add extract_imports() method to BoilerplateParser
     - Implement regex-based import parsing
     - Return list of ImportStatement objects
     - Handle edge cases (multi-line imports, comments)
     - _Requirements: 1.1_
 
-  - [ ] 2.2 Add find_referenced_files() method
+  - [x] 2.2 Add find_referenced_files() method
     - Analyze all imports in selected features
     - Identify relative imports (starting with ./ or ../)
     - Return set of unique referenced file paths
     - _Requirements: 1.2, 1.4_
 
-  - [ ] 2.3 Add extract_file_by_path() method
+  - [x] 2.3 Add extract_file_by_path() method
     - Search boilerplate for file matching import path
     - Extract file content from code blocks
     - Handle different file naming conventions
@@ -39,15 +39,15 @@ This plan breaks down the implementation into discrete tasks that enhance the ex
     - **Property 2: Referenced File Extraction**
     - **Validates: Requirements 1.2, 1.3, 1.4**
 
-- [ ] 3. Implement TypeORM import fixing
-  - [ ] 3.1 Add fix_typeorm_imports() method to BoilerplateParser
+- [-] 3. Implement TypeORM import fixing
+  - [x] 3.1 Add fix_typeorm_imports() method to BoilerplateParser
     - Identify imports from '@nestjs/typeorm'
     - Check if imported items are TypeORM decorators
     - Replace package name with 'typeorm'
     - Preserve other @nestjs/typeorm imports (like TypeOrmModule)
     - _Requirements: 2.1, 2.2, 2.3_
 
-  - [ ] 3.2 Integrate TypeORM fixing into get_files_for_features()
+  - [x] 3.2 Integrate TypeORM fixing into get_files_for_features()
     - Apply fix_typeorm_imports() to all TypeScript files
     - Ensure fixing happens before file generation
     - _Requirements: 2.1, 2.2, 2.3_
@@ -86,15 +86,15 @@ This plan breaks down the implementation into discrete tasks that enhance the ex
     - **Property 4: Import Path Resolution**
     - **Validates: Requirements 4.1, 4.2, 4.4**
 
-- [ ] 6. Implement comprehensive file extraction
-  - [ ] 6.1 Update generate() method to extract all referenced files
+- [-] 6. Implement comprehensive file extraction
+  - [x] 6.1 Update generate() method to extract all referenced files
     - Call find_referenced_files() after initial extraction
     - Extract each referenced file using extract_file_by_path()
     - Add extracted files to generation queue
     - Deduplicate files by path
     - _Requirements: 1.2, 1.3, 1.4_
 
-  - [ ] 6.2 Call fix_all_import_paths() after file placement
+  - [x] 6.2 Call fix_all_import_paths() after file placement
     - Ensure all files are placed before fixing paths
     - Fix paths for all generated files
     - _Requirements: 4.1, 4.2, 4.4_
@@ -119,7 +119,7 @@ This plan breaks down the implementation into discrete tasks that enhance the ex
     - **Property 6: Conditional TypeORM Dependency**
     - **Validates: Requirements 5.4**
 
-- [ ] 8. Fix main.ts bootstrap function
+- [x] 8. Fix main.ts bootstrap function
   - [ ] 8.1 Create template for correct main.ts structure
     - Include async bootstrap function
     - Add NestFactory.create() with await
