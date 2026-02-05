@@ -1,0 +1,155 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+coverage/
+*.cover
+.hypothesis/
+
+# Node.js (for generated projects)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Generated projects (optional - uncomment if you don't want to track them)
+# project*/
+# webapp/
+# nitedge/
+# vantero/
+# ventiro/
+# newww/
+# pro/
+# projectnew/
+# projectt/
+# projecttt/
+# test_auto/
+# xyz/
+# viiii/
+# veve/
+# final_core_fix/
+
+# Build outputs
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+*.app
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+db.sqlite3
+
+# Media files (for Django projects)
+media/
+staticfiles/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+.Trash-*
+projecttt/
+projectt/

@@ -1,0 +1,4 @@
+python-dotenv==1.0.1
+email_validator==2.1.1
+typer>=0.9.0
+InquirerPy>=0.3.4

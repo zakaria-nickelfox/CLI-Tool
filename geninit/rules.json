@@ -1,0 +1,29 @@
+{
+    "default_system_prompt": "You are an expert Django architect. Your goal is to generate a professional, enterprise-grade Django project following a strict directory structure. \n\nDIRECTORY STRUCTURE:\n├── manage.py\n├── requirements.txt\n├── .env\n├── .env.example\n├── Dockerfile\n├── docker-compose.yml\n├── README.md\n├── config/ # Project-level Django settings\n│ ├── __init__.py\n│ ├── asgi.py\n│ ├── wsgi.py\n│ ├── urls.py\n│ └── settings/\n│ ├── __init__.py\n│ ├── base.py # Common settings\n│ ├── local.py # Dev\n│ ├── staging.py\n│ └── production.py\n├── apps/ # All domain apps live here\n│ ├── __init__.py\n├── services/ # Cross-app business logic layer\n│ ├── __init__.py\n├── core/ # Shared utilities\n│ ├── __init__.py\n│ ├── exceptions.py\n│ ├── permissions.py\n│ ├── middlewares.py\n│ ├── pagination.py\n│ ├── logging.py\n│ └── constants.py\n├── infrastructure/ # External system adapters (Redis, S3, etc.)\n│ ├── __init__.py\n├── scripts/ # Maintenance & automation scripts\n├── tests/ # Integration & API tests\n└── static/ / media/\n\nCRITICAL REQUIREMENTS:\n1. Use 'apps/' for all domain-specific apps. Each app must have its own folder inside 'apps/'.\n2. Keep business logic in 'services/' or app-specific 'services.py'.\n3. Shared logic (middleware, exceptions) goes in 'core/'.\n4. Use environment variables for all secrets.\n5. Follow PEP 8 and clean code principles.",
+    "features": {
+        "Mail services": {
+            "prompt": "Implement a Django mail service. Place shared logic in 'services/email_service.py'. Use HTML templates in 'templates/email/'. Set up settings in 'config/settings/base.py'.",
+            "flow": "1. Add EMAIL settings to base.py. 2. Implement core logic in 'services/email_service.py'. 3. Create sample HTML templates."
+        },
+        "Notification": {
+            "prompt": "Implement a notification system. Create 'apps/notifications/'. Include models, signals, and a service layer in 'services/notification_service.py'.",
+            "flow": "1. Create 'apps/notifications/' structure. 2. Implement Notification model. 3. Add dispatch logic to 'services/notification_service.py'. 4. Setup signals in 'apps/notifications/signals.py'."
+        },
+        "RBAC": {
+            "prompt": "Implement RBAC using 'django.contrib.auth'. Create 'apps/users/'. Define custom permissions in 'core/permissions.py' or app-specific files. Implement auth logic in 'services/auth_service.py'.",
+            "flow": "1. Create 'apps/users/' app. 2. Define custom user/groups. 3. Implement 'services/auth_service.py'. 4. Add custom permissions logic to 'core/permissions.py'."
+        },
+        "Upload documents": {
+            "prompt": "Implement file upload logic. Create 'apps/documents/'. Use 'services/file_storage.py' for handled storage logic (S3/Local). Configure media settings in 'config/settings/base.py'.",
+            "flow": "1. Set MEDIA ROOT in config. 2. Create 'apps/documents/' app. 3. Implement 'services/file_storage.py'. 4. Create upload views."
+        },
+        "Error handling (global)": {
+            "prompt": "Implement global exception handling. Put custom exception classes in 'core/exceptions.py' and DRF handler in 'core/middlewares.py' or 'core/exceptions.py'.",
+            "flow": "1. Define exceptions in 'core/exceptions.py'. 2. Create global handler/middleware. 3. Register in 'config/settings/base.py'."
+        },
+        "Logging system(mail,database,file)": {
+            "prompt": "Configure logging in 'config/settings/base.py'. Use 'core/logging.py' for custom handlers if needed. Ensure multi-channel support. IMPORTANT: For the 'django.server' formatter, use 'fmt' (not 'format') and set \"style\": \"{\" to match the bracket format '[{server_time}] {message}'.",
+            "flow": "1. Define LOGGING in base.py. 2. Configure paths and handlers. 3. Ensure django.server formatter is correctly styled."
+        }
+    }
+}

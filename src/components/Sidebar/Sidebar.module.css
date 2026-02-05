@@ -1,0 +1,70 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -250px; /* Hidden by default */
+  width: 250px;
+  height: 100%;
+  background-color: #2c3e50; /* Dark background */
+  color: white;
+  padding-top: 60px; /* Space for a potential fixed header or close button */
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.3);
+  transition: left 0.3s ease-in-out;
+  z-index: 1050; /* Higher than navbar */
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar.open {
+  left: 0; /* Slide in */
+}
+
+.closeButton {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 2em;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.sidebarNavList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1; /* Allows list to take available space */
+}
+
+.sidebarNavItem {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebarNavItem:last-child {
+  border-bottom: none;
+}
+
+.sidebarNavLink {
+  display: block;
+  padding: 15px 20px;
+  color: white;
+  text-decoration: none;
+  font-size: 1.1em;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.sidebarNavLink:hover {
+  background-color: #34495e; /* Slightly lighter on hover */
+  color: #007bff; /* Highlight color */
+}
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+  z-index: 1000; /* Below sidebar, above page content */
+}

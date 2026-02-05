@@ -1,0 +1,144 @@
+╔══════════════════════════════════════════════════════════════╗
+║                  GenInit Setup Guide                         ║
+║              npm-style Command Interface                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+QUICK SETUP (3 Steps):
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Activate your virtual environment:
+   
+   Windows:
+   > venv\Scripts\activate
+   
+   Linux/Mac:
+   $ source venv/bin/activate
+
+2. Install GenInit:
+   
+   PowerShell (Recommended):
+   > .\scripts install
+   
+   CMD:
+   > scripts install
+   
+   Linux/Mac:
+   $ make install
+   
+   Or manually:
+   $ pip install -e .
+
+3. Run GenInit:
+   
+   PowerShell:
+   > .\scripts start
+   
+   CMD:
+   > scripts start
+   
+   Linux/Mac:
+   $ make start
+   
+   Or directly:
+   $ geninit init
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VERIFY INSTALLATION:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Run the test script:
+$ python test_installation.py
+
+This will check if everything is installed correctly.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ALL AVAILABLE COMMANDS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Windows PowerShell (Recommended):
+  .\scripts install  - Install GenInit
+  .\scripts dev      - Install with dev dependencies
+  .\scripts start    - Run GenInit
+  .\scripts test     - Run tests
+  .\scripts clean    - Clean build files
+  .\scripts help     - Show help
+
+Windows CMD:
+  scripts install    - Install GenInit
+  scripts dev        - Install with dev dependencies
+  scripts start      - Run GenInit
+  scripts test       - Run tests
+  scripts clean      - Clean build files
+  scripts help       - Show help
+
+Linux/Mac (Makefile):
+  make install       - Install GenInit
+  make dev           - Install with dev dependencies
+  make start         - Run GenInit
+  make test          - Run tests
+  make clean         - Clean build files
+  make help          - Show help
+
+Direct Commands (after installation):
+  geninit init       - Start GenInit
+  geninit --help     - Show help
+  python -m geninit.main  - Alternative way to run
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMPARISON WITH NPM:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NPM Command              →  GenInit Equivalent
+─────────────────────────────────────────────────────────────
+npm install              →  .\scripts install (PowerShell)
+                            scripts install (CMD)
+                            make install (Linux/Mac)
+npm run start            →  .\scripts start / scripts start
+npm run dev              →  .\scripts dev / scripts dev
+npm test                 →  .\scripts test / scripts test
+npm run clean            →  .\scripts clean / scripts clean
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TROUBLESHOOTING:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Problem: "geninit: command not found"
+Solution: 
+  1. Make sure virtual environment is activated
+  2. Run: pip install -e .
+  3. Try: python -m geninit.main
+
+Problem: "No module named 'typer'"
+Solution: 
+  1. Run: pip install -r requirements.txt
+  2. Then: pip install -e .
+
+Problem: "scripts: command not found" (PowerShell)
+Solution: 
+  1. Use: .\scripts install (with the dot-slash)
+  2. Or use CMD: scripts install
+  3. Or run directly: pip install -e .
+
+Problem: "scripts: command not found" (CMD)
+Solution: 
+  1. Use: scripts.bat install
+  2. Or run directly: pip install -e .
+
+Problem: "make: command not found" (Windows)
+Solution: 
+  1. Use scripts.bat instead: scripts install
+  2. Or install make for Windows
+  3. Or run commands directly
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+For more details, see:
+  - README.md - Full documentation
+  - QUICKSTART.md - Quick start guide
+  - pyproject.toml - Package configuration
+
+Happy coding! 🚀
