@@ -57,6 +57,25 @@ class ProjectGenerator:
         
         # Extract and create feature files
         files = parser.get_files_for_features(selected_features)
+        
+        # Find all referenced files from imports
+        referenced_paths = parser.find_referenced_files(selected_features)
+        
+        # Extract referenced files that aren't already in our files dict
+        for ref_path in referenced_paths:
+            # Normalize path to just filename
+            filename = Path(ref_path).name
+            
+            # Skip if we already have this file
+            if filename in files:
+                continue
+            
+            # Try to extract this file from the boilerplate
+            content = parser.extract_file_by_path(ref_path)
+            if content:
+                files[filename] = content
+        
+        # Create all files
         self._create_feature_files(files)
         
         # Create configuration files
@@ -73,7 +92,11 @@ class ProjectGenerator:
         if 'Django' in self.framework:
             dirs = ['config/settings', 'apps', 'core', 'services', 'static', 'media', 'logs']
         elif 'NestJS' in self.framework:
-            dirs = ['src/modules', 'src/filters', 'src/guards', 'src/services', 'src/entities']
+            dirs = [
+                'src/modules', 'src/filters', 'src/guards', 'src/services', 
+                'src/entities', 'src/enums', 'src/decorators', 'src/dtos', 
+                'src/interfaces'
+            ]
         elif 'React Native' in self.framework:
             dirs = ['src/components', 'src/screens', 'src/services', 'src/hooks', 'src/utils']
         elif 'React' in self.framework and 'Next' in self.framework:
@@ -103,19 +126,33 @@ class ProjectGenerator:
                 else:
                     target_dir = self.project_path / 'core'
             elif 'NestJS' in self.framework:
-                # Basic heuristics for feature folders
-                if 'mail' in filename:
+                # Enhanced heuristics for feature folders
+                if '.enum.ts' in filename:
+                    target_dir = self.project_path / 'src/enums'
+                elif '.decorator.ts' in filename:
+                    target_dir = self.project_path / 'src/decorators'
+                elif '.dto.ts' in filename:
+                    target_dir = self.project_path / 'src/dtos'
+                elif '.interface.ts' in filename:
+                    target_dir = self.project_path / 'src/interfaces'
+                elif '.guard.ts' in filename:
+                    target_dir = self.project_path / 'src/guards'
+                elif '.filter.ts' in filename:
+                    target_dir = self.project_path / 'src/filters'
+                elif 'mail' in filename:
                     target_dir = self.project_path / 'src/mail'
                 elif 'notification' in filename:
                     target_dir = self.project_path / 'src/notification'
                 elif 'rbac' in filename:
                     target_dir = self.project_path / 'src/rbac'
-                elif 'upload' in filename:
+                elif 'upload' in filename or 'file-upload' in filename:
                     target_dir = self.project_path / 'src/file-upload'
-                elif 'logger' in filename or 'logging' in filename:
+                elif 'logger' in filename or 'logging' in filename or 'log-entry' in filename:
                     target_dir = self.project_path / 'src/logger'
-                elif 'filter' in filename:
-                    target_dir = self.project_path / 'src/filters'
+                elif '.entity.ts' in filename:
+                    target_dir = self.project_path / 'src/entities'
+                elif 'user' in filename and ('.service.ts' in filename or '.controller.ts' in filename):
+                    target_dir = self.project_path / 'src/user'
                 else:
                     target_dir = self.project_path / 'src'
             else:
@@ -466,45 +503,94 @@ npm run build
 
     def _fix_import_paths(self):
         """Fix import paths for generated NestJS files."""
-        if 'NestJS' not in self.framework: return
+        if 'NestJS' not in self.framework: 
+            return
 
+        # Build a comprehensive file map: filename (without extension) -> full path
+        file_map = {}
         for filename, file_path in self.generated_files.items():
-            if not str(file_path).endswith('.ts'): continue
+            if str(file_path).endswith('.ts'):
+                # Store both with and without extension
+                base_name = filename.replace('.ts', '')
+                file_map[base_name] = file_path
+                file_map[filename] = file_path
+        
+        # Also scan the src directory for any files we might have missed
+        src_dir = self.project_path / 'src'
+        if src_dir.exists():
+            for ts_file in src_dir.rglob('*.ts'):
+                rel_to_src = ts_file.relative_to(src_dir)
+                base_name = ts_file.stem
+                file_map[base_name] = ts_file
+                file_map[ts_file.name] = ts_file
+
+        # Fix imports in each file
+        for filename, file_path in self.generated_files.items():
+            if not str(file_path).endswith('.ts'): 
+                continue
             
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
             
-            def replace_path(match):
-                import_path = match.group(1)
-                # Only fix relative imports
-                if import_path.startswith('.'):
-                    basename = import_path.split('/')[-1]
-                    target_file = None
-                    # Search for target file in generated set
-                    for gen_name, gen_path in self.generated_files.items():
-                        # Try exact match or base match
-                        if gen_name == basename + '.ts':
-                            target_file = gen_path
-                            break
-                        if gen_name.replace('.ts', '') == basename:
-                             target_file = gen_path
-                             break
-                    
-                    if target_file:
-                        try:
-                            # Compute new relative path
-                            rel = os.path.relpath(target_file, file_path.parent)
-                            if not rel.startswith('.'):
-                                rel = './' + rel
-                            rel = rel.replace('.ts', '').replace('\\', '/')
-                            return f"from '{rel}'"
-                        except ValueError:
-                            pass
-                return match.group(0)
-
-            # Replace imports
-            new_content = re.sub(r"from\s+['\"](\..*?)['\"]", replace_path, content)
+            original_content = content
             
-            if new_content != content:
+            # Pattern to match import statements
+            import_pattern = r"from\s+['\"]([^'\"]+)['\"]"
+            
+            def replace_import(match):
+                import_path = match.group(1)
+                
+                # Skip non-relative imports (npm packages, @nestjs/*, etc.)
+                if not import_path.startswith('.'):
+                    return match.group(0)
+                
+                # Extract the target filename from the import path
+                # Handle cases like './rbac.guard', '../entities/log-entry.entity', etc.
+                parts = import_path.split('/')
+                target_name = parts[-1]  # Get the last part (filename without path)
+                
+                # Try to find the target file in our file map
+                target_file = None
+                
+                # Try exact match first
+                if target_name in file_map:
+                    target_file = file_map[target_name]
+                # Try with .ts extension
+                elif f"{target_name}.ts" in file_map:
+                    target_file = file_map[f"{target_name}.ts"]
+                # Try searching by base name
+                else:
+                    for key, path in file_map.items():
+                        if key.replace('.ts', '') == target_name or key == target_name:
+                            target_file = path
+                            break
+                
+                if target_file and target_file.exists():
+                    try:
+                        # Calculate the correct relative path
+                        rel_path = os.path.relpath(target_file, file_path.parent)
+                        
+                        # Normalize path separators to forward slashes
+                        rel_path = rel_path.replace('\\', '/')
+                        
+                        # Remove .ts extension
+                        rel_path = rel_path.replace('.ts', '')
+                        
+                        # Ensure it starts with ./  or ../
+                        if not rel_path.startswith('.'):
+                            rel_path = './' + rel_path
+                        
+                        return f"from '{rel_path}'"
+                    except (ValueError, OSError):
+                        pass
+                
+                # If we couldn't find or fix the import, return original
+                return match.group(0)
+            
+            # Replace all imports
+            new_content = re.sub(import_pattern, replace_import, content)
+            
+            # Write back if changed
+            if new_content != original_content:
                 with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(new_content)

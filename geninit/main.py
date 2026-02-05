@@ -4,7 +4,7 @@ from pathlib import Path
 from .template_parser import BoilerplateParser
 from .project_generator import ProjectGenerator
 
-app = typer.Typer(help="GenInit - Template-Based Project Scaffolding Tool", invoke_without_command=True)
+app = typer.Typer(help="GenInit - Template-Based Project Scaffolding Tool")
 
 # Map of available languages/frameworks to their boilerplate files
 BOILERPLATE_MAP = {
@@ -14,17 +14,7 @@ BOILERPLATE_MAP = {
     "React with Next.js (Web App)": "REACT_NEXT_BOILERPLATE.md",
 }
 
-@app.callback(invoke_without_command=True)
-def main(ctx: typer.Context):
-    """
-    GenInit - Template-Based Project Scaffolding Tool
-    
-    Initialize a new project by selecting language and features.
-    """
-    if ctx.invoked_subcommand is None:
-        init()
-
-@app.command()
+@app.command(name="")
 def init():
     """
     Initialize a new project by selecting language and features.
